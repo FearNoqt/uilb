@@ -1,6 +1,7 @@
 local playr = game:GetService("Players")
-local local_player = playr.LocalPlayer
+local usrin = game:GetService("UserInputService")
 local tween = game:GetService("TweenService")
+local plylc = playr.LocalPlayer
 
 local scrgu
 local mainf
@@ -8,6 +9,7 @@ local tabbf
 local tabcf
 local activ_tab_name = nil
 local tabs_data = {}
+local ui_state = true
 
 local fear = {}
 
@@ -16,12 +18,13 @@ local function _init()
     scrgu.Name = "Fear_UI_Lib"
     scrgu.ResetOnSpawn = false
     scrgu.DisplayOrder = 100
-    scrgu.Parent = local_player:WaitForChild("PlayerGui")
+    scrgu.Parent = plylc:WaitForChild("PlayerGui")
+    scrgu.Enabled = true
 
     mainf = Instance.new("Frame")
     mainf.Name = "MainFrame"
-    mainf.Size = UDim2.new(0, 550, 0, 700)
-    mainf.Position = UDim2.new(0.5, -275, 0.5, -350)
+    mainf.Size = UDim2.new(0.8, 0, 0.9, 0)
+    mainf.Position = UDim2.new(0.5, 0, 0.5, 0)
     mainf.AnchorPoint = Vector2.new(0.5, 0.5)
     mainf.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
     mainf.BackgroundTransparency = 0.05
@@ -30,6 +33,10 @@ local function _init()
     mainf.Active = true
     mainf.Draggable = true
     mainf.Parent = scrgu
+
+    local main_aspect = Instance.new("UIAspectRatioConstraint")
+    main_aspect.AspectRatio = 550 / 700
+    main_aspect.Parent = mainf
 
     tabbf = Instance.new("Frame")
     tabbf.Name = "TabBtns"
@@ -57,6 +64,14 @@ local function _init()
     tabcf.BorderSizePixel = 0
     tabcf.CornerRadius = UDim.new(0, 20)
     tabcf.Parent = mainf
+
+    usrin.InputBegan:Connect(function(input, game_processed)
+        if game_processed then return end
+        if input.KeyCode == Enum.KeyCode.RightShift then
+            ui_state = not ui_state
+            scrgu.Enabled = ui_state
+        end
+    end)
 end
 
 local function _swic(name)
@@ -282,7 +297,6 @@ function fear.addtb(name)
             sli_handl.Draggable = true
 
             local is_drag = false
-            local last_pos_x = 0
             local current_value = props.defau
 
             local function _updat_slid()
@@ -299,28 +313,25 @@ function fear.addtb(name)
 
             sli_handl.MouseButton1Down:Connect(function()
                 is_drag = true
-                last_pos_x = playr.LocalPlayer:GetMouse().X
             end)
 
             sli_bar_track.MouseButton1Down:Connect(function(x, y)
-                local mouse_x = playr.LocalPlayer:GetMouse().X
-                local relative_x = mouse_x - sli_bar_track.AbsolutePosition.X
+                local relative_x = x - sli_bar_track.AbsolutePosition.X
                 local percent = relative_x / sli_bar_track.AbsoluteSize.X
                 current_value = props.min + (props.max - props.min) * percent
                 _updat_slid()
                 props.click(current_value)
             end)
 
-            playr.LocalPlayer:GetMouse().MouseUp:Connect(function()
-                if is_drag then
+            usrin.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     is_drag = false
                 end
             end)
 
-            playr.LocalPlayer:GetMouse().MouseMove:Connect(function()
-                if is_drag then
-                    local mouse_x = playr.LocalPlayer:GetMouse().X
-                    local relative_x = mouse_x - sli_bar_track.AbsolutePosition.X
+            usrin.InputChanged:Connect(function(input, game_processed)
+                if is_drag and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                    local relative_x = input.Position.X - sli_bar_track.AbsolutePosition.X
                     local percent = relative_x / sli_bar_track.AbsoluteSize.X
                     current_value = props.min + (props.max - props.min) * percent
                     _updat_slid()
@@ -447,7 +458,12 @@ function fear.addtb(name)
     }
 end
 
-_init()
+local success, message = pcall(_init)
+if success then
+    print("Fear UI Library: Initialization successful!")
+else
+    warn("Fear UI Library: Initialization failed! Error: " .. message)
+end
 
 _G.fear = fear
 
@@ -456,6 +472,7 @@ local settg = _G.fear.addtb("Settg")
 local debug = _G.fear.addtb("Debug")
 
 if home_tab then
+    print("Fear UI Library: Adding Home tab elements.")
     home_tab.addbtn({
         text = "Click Me",
         click = function()
@@ -486,9 +503,12 @@ if home_tab then
             print("Mode selected: " .. val)
         end
     })
+else
+    warn("Fear UI Library: Home tab could not be created.")
 end
 
 if settg then
+    print("Fear UI Library: Adding Settg tab elements.")
     settg.addbtn({
         text = "Save Config",
         click = function()
@@ -510,9 +530,12 @@ if settg then
             print("Theme changed to: " .. val)
         end
     })
+else
+    warn("Fear UI Library: Settg tab could not be created.")
 end
 
 if debug then
+    print("Fear UI Library: Adding Debug tab elements.")
     debug.addbtn({
         text = "Print Info",
         click = function()
@@ -535,4 +558,6 @@ if debug then
             print("FPS Limit: " .. math.floor(val))
         end
     })
+else
+    warn("Fear UI Library: Debug tab could not be created.")
 end
